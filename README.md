@@ -1,2 +1,48 @@
-# alsa-aec
+# ALSA AEC
 ALSA virtual device which combines recording and playback loopback for AEC processing
+
+## Usage
+1. Enable ALSA loopback module with `sudo modprobe snd-aloop`
+
+2. Copy `alsa-aec.conf` to `/etc/alsa/conf.d/50-aec.conf`. Create the the directory if it doesn't exist.
+
+3. Set parameters for the `aec` device. Add the following lines in your `/etc/asound.conf` or `~/.asoundrc`
+
+   ```
+   defaults.pcm.aec.playback_hw.card defaults.pcm.card   # playback hw card 
+   defaults.pcm.aec.capture_hw.card defaults.pcm.card    # capture hw card
+   defaults.pcm.aec.capture_hw.rate 16000                # sample rate supported by the capture card
+   ```
+
+3. Play some audio through the `aec` device: `aplay -D aec music.wav`
+4. While audio is playing, record from the `aec_internal` device: `arecord -D aec_internal -f S16_LE -r 16000 -c 2 rec.wav -V stereo`. Load `rec.wav` in Audacity, you should see two channels, where the first is raw mic recording and the second is the playback loopback (reference).
+5. Run AEC processor with `aec_internal` as both the input and the output device, e.g., you can use the `aec.py` from my [PiDTLN](https://github.com/SaneBow/PiDTLN) project.
+6. Capture processed clear recording from `aec`: `arecord -D aec -f S16_LE -r 16000 -c 1 rec.wav -V mono`
+
+## Internal of the AEC Virtual Device
+
+![workflow](workflow.png)
+
+### Story
+
+I created some script (see [PiDTLN](https://github.com/SaneBow/PiDTLN)) to do AEC with assuming the input audio contains both raw mic input and playback in separate channels. Some soundcard has hardware support for this. But I also want to make it happen on soundcards without hardware loopback channel. Even more ambitious, I want to do AEC when playback and capture are not on the same card, e.g., play through bluetooth speaker while recording from USB mic.
+
+There were various approaches in my mind, e.g., use FIFO to combine channels, modify aec script to capture simutanously from both mic and loopback, but I finally determined to do it with only adding some alsa configuration. It is notorious that the `asound.conf` can be very obscure and mysterious, due to the bad documentation. With a few days of googling, trial and error, I finally came up with the ugly solution above.
+
+### High Level Idea
+
+* When players play audio through the `aec` virtual device, we duplicate the stream into two, then pass one to the soundcard while redircting another to the virtual loopback device.
+* AEC processor captures audio from the `aec_internal` device. This virtual device fetches mic input to its channel 0, and fetches the previously stored playback from the loopback device into its channel 1.
+* After AEC processing, the clear audio is put into the loopback through the `aec_internal` device and can be fetched by other programs with the `aec` device.
+* So applications only need to use the `aec` device for playing and recording. AEC processor uses `aec_internal` as input and output device.
+
+### Design Rationale
+
+* **High quality audio play**: While I assume that AEC processor can only handle 16kHz mono audio,  I want my speakers be able to play $x$ kHz stereo audio as usual.  That's why we have separats `plug` for hw and loopback playback devices.
+
+* **Support various capture devices**: Capture hardware may only support some sample rates, and may multiple channels. At first I try to wrap it with a `plug` for auto-convertion, but strange things happen (xruns, errors). With trial and error, I finally found that selecting only one channel and set explicit sample rate conversion with the `rate` plugin worked. That's why in the bottom right I put a `rate` instead of a `plug`. If anyone know the reason behind this please tell me.
+
+* **Flexible**: I added a lot of parameters in the device configuration to make it easier to customize. It is not only possible to specify the hardware card you want to use for AEC, but also possible to set a alsa PCM as the playback/capture device. For example, if you want to play via the `pulse` (PulseAudio device), you can play audio to`aec:pulse`, or you can set `defaults.pcm.aec.playback_pcm "pulse"` in the `~/.asoundrc`.
+
+  
+
