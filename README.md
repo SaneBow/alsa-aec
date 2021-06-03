@@ -6,18 +6,35 @@ ALSA virtual device which combines recording and playback loopback for AEC proce
 
 2. Copy `alsa-aec.conf` to `/etc/alsa/conf.d/50-aec.conf`. Create the the directory if it doesn't exist.
 
-3. Set parameters for the `aec` device. Add the following lines in your `/etc/asound.conf` or `~/.asoundrc`
+3. Set parameters for the `aec` device. Suppose you use default alsa card for playback and capture, but your capture device only supports 48000Hz sample rate. Then you need to add the following line in your `/etc/asound.conf` or `~/.asoundrc`
 
    ```
-   defaults.pcm.aec.playback_hw.card defaults.pcm.card   # playback hw card 
-   defaults.pcm.aec.capture_hw.card defaults.pcm.card    # capture hw card
-   defaults.pcm.aec.capture_hw.rate 16000                # sample rate supported by the capture card
+   defaults.pcm.aec.capture_hw.rate 16000
    ```
 
 3. Play some audio through the `aec` device: `aplay -D aec music.wav`
 4. While audio is playing, record from the `aec_internal` device: `arecord -D aec_internal -f S16_LE -r 16000 -c 2 rec.wav -V stereo`. Load `rec.wav` in Audacity, you should see two channels, where the first is raw mic recording and the second is the playback loopback (reference).
 5. Run AEC processor with `aec_internal` as both the input and the output device, e.g., you can use the `aec.py` from my [PiDTLN](https://github.com/SaneBow/PiDTLN) project.
 6. Capture processed clear recording from `aec`: `arecord -D aec -f S16_LE -r 16000 -c 1 rec.wav -V mono`
+
+## Configuraiton
+
+All configurations can be found in `alsa-aec.conf`. Now it supports the following configuations:
+
+```
+defaults.pcm.aec.playback_hw.card defaults.pcm.card   # playback hw card 
+defaults.pcm.aec.capture_hw.card defaults.pcm.card    # capture hw card
+defaults.pcm.aec.capture_hw.rate 16000                # sample rate supported by the capture card
+## you may also directly set some PCM device as playback and capture device
+defaults.pcm.aec.playback_pcm "playback_hw"      
+defaults.pcm.aec.capture_pcm "capture_hw"             
+defaults.pcm.aec.pre_loopidx 4    # loopback subdevice index for stream before aec processing
+defaults.pcm.aec.post_loopidx 5   # loopback subdevice index for stream after aec processing
+```
+
+You can set these parameters in `/etc/asound.conf` or `~/.asoundrc`
+
+Another way to do it is to use device with parameters, e.g., `aec:pulse`, `aec_internal:\"\\\"capture_hw:2,48000\\\"\"`  (avoid this because of the ugly and error-prone escapes)
 
 ## Internal of the AEC Virtual Device
 
@@ -42,7 +59,7 @@ There were various approaches in my mind, e.g., use FIFO to combine channels, mo
 
 * **Support various capture devices**: Capture hardware may only support some sample rates, and may multiple channels. At first I try to wrap it with a `plug` for auto-convertion, but strange things happen (xruns, errors). With trial and error, I finally found that selecting only one channel and set explicit sample rate conversion with the `rate` plugin worked. That's why in the bottom right I put a `rate` instead of a `plug`. If anyone know the reason behind this please tell me.
 
-* **Flexible**: I added a lot of parameters in the device configuration to make it easier to customize. It is not only possible to specify the hardware card you want to use for AEC, but also possible to set a alsa PCM as the playback/capture device. For example, if you want to play via the `pulse` (PulseAudio device), you can play audio to`aec:pulse`, or you can set `defaults.pcm.aec.playback_pcm "pulse"` in the `~/.asoundrc`.
+* **Flexible**: I added a lot of parameters in the device configuration to make it easier to customize. It is not only possible to specify the hardware card you want to use for AEC, but also possible to set a alsa PCM as the playback/capture device. For example, if you want to play via the `pulse` (PulseAudio device), you can play audio to the device `aec:pulse`, or you can set `defaults.pcm.aec.playback_pcm "pulse"` in the `~/.asoundrc`.
 
   
 
