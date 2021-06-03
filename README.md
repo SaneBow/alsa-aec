@@ -1,7 +1,10 @@
 # ALSA AEC
 ALSA virtual device which combines recording and playback loopback for AEC processing
 
+![effect](images/channels.png)
+
 ## Usage
+
 1. Enable ALSA loopback module with `sudo modprobe snd-aloop`
 
 2. Copy `alsa-aec.conf` to `/etc/alsa/conf.d/50-aec.conf`. Create the the directory if it doesn't exist.
@@ -38,7 +41,7 @@ Another way to do it is to use device with parameters, e.g., `aec:pulse`, `aec_i
 
 ## Internal of the AEC Virtual Device
 
-![workflow](workflow.png)
+![workflow](images/workflow.png)
 
 ### Story
 
