@@ -69,7 +69,7 @@ There were various approaches in my mind, e.g., use FIFO to combine channels, mo
 
 ### Design Rationale
 
-* **High quality audio play**: While I assume that AEC processor can only handle 16kHz mono audio,  I want my speakers be able to play $x$ kHz stereo audio as usual.  That's why we have separats `plug` for hw and loopback playback devices. Note that the `rate`  above the playback hw is to avoid xruns, see below for details.
+* **High quality audio play**: While I assume that AEC processor can only handle 16kHz mono audio,  I want my speakers be able to play 48kHz stereo audio as usual.  That's why we have separats `plug` for hw and loopback playback devices. Note that the `rate`  above the playback hw is to avoid xruns, see below for details.
 
 * **Support various capture devices**: Capture hardware may only support some sample rates, and may multiple channels. At first I try to wrap it with a `plug` for auto-convertion, but strange things happen (xruns, errors). With trial and error, I finally found that selecting only one channel and set explicit sample rate conversion with the `rate` plugin worked. That's why in the bottom right I put a `rate` instead of a `plug`. If anyone know the reason behind this please tell me.
 
