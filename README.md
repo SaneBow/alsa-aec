@@ -43,10 +43,12 @@ Another way to do it is to use device with parameters, e.g., `aec:pulse`, `aec_i
 ## Troubleshoot
 
 * `arecord: xrun:1664: read/write error, state = RUNNING`
-  * Check your setting of `defaults.pcm.aec.capture_hw.rate`. It must be set to a sample rate natively supported by the capture device.
+  * Check your setting of `defaults.pcm.aec.capture_hw.rate`. It must be set to a sample rate natively supported by the capture device. 
 * `aplay: xrun:1664: read/write error, state = PREPARED`
   * Check your setting of `defaults.pcm.aec.playback_hw.rate`. It must be set to a sample rate natively supported by the playback device.
 * If you set `playback_pcm` or `capture_pcm` to other device and see xruns, you can try to wrap the device with a `rate` plugin and set `slave.rate` to a value supported by the device.
+
+[alsacap](https://www.volkerschatz.com/noise/alsa.html#alsacap) is a nice tool to help you find your device's supported sample rates.
 
 ## Internal of the AEC Virtual Device
 
@@ -70,7 +72,12 @@ There were various approaches in my mind, e.g., use FIFO to combine channels, mo
 * **High quality audio play**: While I assume that AEC processor can only handle 16kHz mono audio,  I want my speakers be able to play $x$ kHz stereo audio as usual.  That's why we have separats `plug` for hw and loopback playback devices. Note that the `rate`  above the playback hw is to avoid xruns, see below for details.
 
 * **Support various capture devices**: Capture hardware may only support some sample rates, and may multiple channels. At first I try to wrap it with a `plug` for auto-convertion, but strange things happen (xruns, errors). With trial and error, I finally found that selecting only one channel and set explicit sample rate conversion with the `rate` plugin worked. That's why in the bottom right I put a `rate` instead of a `plug`. If anyone know the reason behind this please tell me.
+
 * **Flexible**: I added a lot of parameters in the device configuration to make it easier to customize. It is not only possible to specify the hardware card you want to use for AEC, but also possible to set a alsa PCM as the playback/capture device. For example, if you want to play via the `pulse` (PulseAudio device), you can play audio to the device `aec:pulse`, or you can set `defaults.pcm.aec.playback_pcm "pulse"` in the `~/.asoundrc`.
 
 
+## References
 
+* [A closer look at ALSA](https://www.volkerschatz.com/noise/alsa.html#alsacap) by volkerschatz
+* [ALSA PCM plugins references](https://www.alsa-project.org/alsa-doc/alsa-lib/pcm_plugins.html)
+* [Module-aloop](https://www.alsa-project.org/wiki/Matrix:Module-aloop)
