@@ -38,7 +38,7 @@ defaults.pcm.aec.post_loopidx 5   # loopback subdevice index for stream after ae
 
 You can set these parameters in `/etc/asound.conf` or `~/.asoundrc`
 
-Another way to do it is to use device with parameters, e.g., `aec:pulse`, `aec_internal:\"\\\"capture_hw:2,48000\\\"\"`  (avoid this because of the ugly and error-prone escapes)
+Another way to do it is to use device with parameters, e.g., `aec:bluealsa`, `aec_internal:\"\\\"capture_hw:2,48000\\\"\"`  (avoid this because of the ugly and error-prone escapes)
 
 ## Troubleshoot
 
@@ -73,7 +73,7 @@ There were various approaches in my mind, e.g., use FIFO to combine channels, mo
 
 * **Support various capture devices**: Capture hardware may only support some sample rates, and may multiple channels. At first I try to wrap it with a `plug` for auto-convertion, but strange things happen (xruns, errors). With trial and error, I finally found that selecting only one channel and set explicit sample rate conversion with the `rate` plugin worked. That's why in the bottom right I put a `rate` instead of a `plug`. If anyone know the reason behind this please tell me.
 
-* **Flexible**: I added a lot of parameters in the device configuration to make it easier to customize. It is not only possible to specify the hardware card you want to use for AEC, but also possible to set a alsa PCM as the playback/capture device. For example, if you want to play via the `pulse` (PulseAudio device), you can play audio to the device `aec:pulse`, or you can set `defaults.pcm.aec.playback_pcm "pulse"` in the `~/.asoundrc`.
+* **Flexible**: I added a lot of parameters in the device configuration to make it easier to customize. It is not only possible to specify the hardware card you want to use for AEC, but also possible to set a alsa PCM as the playback/capture device. For example, if you want to play on your bluetooth speaker via the `bluealsa` device (see the [bluez-alsa](https://github.com/Arkq/bluez-alsa) project), you can play audio to the device `aec:bluealsa`, or you can set `defaults.pcm.aec.playback_pcm "bluealsa"` in the `~/.asoundrc`.
 
 
 ## References
